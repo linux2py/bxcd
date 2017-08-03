@@ -1,4 +1,5 @@
 #!/use/bin/env python
+#自动版本，获取所有链接中的文字。
 import io
 import sys
 import requests
@@ -7,7 +8,7 @@ import re
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030')
 
-# 获取网页链接
+#抓取分网页面URL
 def Get_link(url):
     #获取小类列表
     tag = re.search(r'bxcd[a-z]/',url).group()
@@ -41,10 +42,11 @@ def Get_link(url):
             i = sub.sub('', i)
             links.append(i)
             l = 0
+    #返回每页所有连接，及下一页连接，如果没有下一页，则返回状态0
     return links, l
 
 
-# 获取页面正文
+# 获取具体页面正文
 def Get_text(url):
     html_t = requests.get(url)
     # 编码集转换
@@ -64,42 +66,60 @@ def Get_text(url):
     return doc1
 
 
-argv_text01 = '''
-CS.py [URL] [PATH]
-'''
 
-p1 = re.compile('http(s)?://.*',re.I)
-p2 = re.compile(r'[a-z]:\\.*',re.I)
+#抓取主页URL
+def main_url():
+    url = 'http://www.qzr.cn/dlbxcd/index.shtml'
+    html_t = requests.get(url)
+    html_t.encoding = 'gb18030'
+    soup = BeautifulSoup(html_t.content, "html.parser")
+    re_text = re.compile('/small/bxcd/bxcd[a-z]/index_1.shtml')
+    a_div = soup.find_all('div')[0]
+    b_td = a_div.find('td', width="576", align="right", valign="top", bgcolor="#FFFFFF", height="2794")
+    a_tag = b_td.find_all('a', href=re_text)
+    main_url = []
+    head_text = re.compile('<a href="')
+    tail_text = re.compile('">更多</a>')
+    for i in a_tag:
+        if (i.get_text() == '更多'):
+            U = head_text.sub('http://www.qzr.cn', str(i))
+            U = tail_text.sub('', U)
+            main_url.append(U)
+    return main_url
 
-if (len(sys.argv) < 3):
-    print('请输入路径及网址')
-    print(argv_text01)
-    exit(1)
-elif(p1.search(sys.argv[1]) and p2.search(sys.argv[2])):
-    # 初始链接
-    temp_url = sys.argv[1]
+
+#调取Get_link返回所有分项URL
+def get_papg(murl):
     URL_01 = []
     a = 10
     while a > 3:
-        A = Get_link(temp_url)[0]
-        temp_url = Get_link(temp_url)[1]
+        A = Get_link(murl)[0]
+        murl = Get_link(murl)[1]
         # 判断，获取的该页面里是否有下一个页面
-        if (temp_url == 0):
+        if (murl == 0):
             URL_01 = URL_01 + A
             a = 1
-            break
         else:
             URL_01 = URL_01 + A
-    path = sys.argv[2]
-    fp = open(path, 'a', encoding='gb18030')
-    for i in URL_01:
+    return URL_01
+
+
+
+
+
+path = 'D:\\Temp\\dict001.txt'
+fp = open(path, 'a', encoding='gb18030')
+
+fast_url = main_url()
+ALL_URL = []
+for url in fast_url:
+    purl = get_papg(url)
+    for i in purl:
         text = Get_text(i)
         fp.write(text + '\n')
-    fp.close()
-else:
-    print('请输入正确的路径及网址')
-    print(argv_text01)
-    exit(1)
+
+fp.close()
+
 
 
 
