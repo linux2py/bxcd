@@ -1,4 +1,5 @@
 #!/use/bin/env python
+#手动版本，输入URL及文件名获取分项页面中所有链接里的文字
 import io
 import sys
 import requests
